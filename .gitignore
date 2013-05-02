@@ -1,0 +1,7 @@
+*.swp
+*.swo
+*.swn
+*.db
+*.log
+conf.go
+conf.sh
