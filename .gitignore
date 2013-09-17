@@ -5,3 +5,5 @@
 *.log
 conf.go
 conf.sh
+data
+log
