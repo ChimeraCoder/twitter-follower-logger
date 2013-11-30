@@ -47,6 +47,6 @@ func main() {
 	}
 
 	for _, user := range users {
-		fmt.Printf("%+v", *user.Screen_name)
+		fmt.Printf("%+v\n", *user.Screen_name)
 	}
 }
