@@ -4,49 +4,35 @@ import (
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"log"
-	"net/url"
 	"time"
 )
 
 func main() {
+	log.Print("Running updated version")
 	anaconda.SetConsumerKey(TWITTER_CONSUMER_KEY)
 	anaconda.SetConsumerSecret(TWITTER_CONSUMER_SECRET)
 	api := anaconda.NewTwitterApi(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 
-	v := url.Values{}
+	d := 20 * time.Second
+	api.EnableRateLimiting(d, 4)
 
-	users := []anaconda.TwitterUser{}
+	log.Printf("Rate limiting with a token added every %s", d.String())
 
-	next_cursor := "-1"
-	for {
-		v.Set("cursor", next_cursor)
-		c, err := api.GetFollowersList(v)
+	followers_pages := api.GetFollowersListAll(nil)
 
-		//TODO distinguish between rate limiting errors and other errors
-		if err != nil {
-			log.Printf("ERROR: %v", err)
-			time.Sleep(90 * time.Second)
-			continue //Retry
+	i := 0
+	for page := range followers_pages {
+		if page.Error != nil {
+			log.Printf("ERROR: received error from GetFollowersListAll: %s", page.Error)
 		}
 
-		users = append(users, c.Users...)
-		log.Printf("Appended %d users", len(c.Users))
-		go func(us []anaconda.TwitterUser) {
-			for _, user := range us {
-				log.Printf("Appended %+v", *user.Screen_name)
-			}
-		}(c.Users)
-
-		next_cursor = c.Next_cursor_str
-		if next_cursor == "0" {
-			break
-		} else {
-			log.Printf("Calling again with cursor %v", next_cursor)
+		if page.Followers == nil || len(page.Followers) == 0 {
+			log.Printf("ERROR: Received invalid value for page %d of followers: %v", i, page.Followers)
 		}
-		time.Sleep(60 * time.Second)
-	}
-
-	for _, user := range users {
-		fmt.Printf("%+v\n", *user.Screen_name)
+		followers := page.Followers
+		for _, follower := range followers {
+			fmt.Printf("%+v\n", *follower.Screen_name)
+		}
+		i++
 	}
 }
