@@ -26,9 +26,6 @@ func main() {
 			log.Printf("ERROR: received error from GetFollowersListAll: %s", page.Error)
 		}
 
-		if page.Followers == nil || len(page.Followers) == 0 {
-			log.Printf("ERROR: Received invalid value for page %d of followers: %v", i, page.Followers)
-		}
 		followers := page.Followers
 		for _, follower := range followers {
 			fmt.Printf("%+v\n", *follower.Screen_name)
