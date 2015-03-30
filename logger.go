@@ -13,8 +13,8 @@ func main() {
 	anaconda.SetConsumerSecret(TWITTER_CONSUMER_SECRET)
 	api := anaconda.NewTwitterApi(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 
-	d := 20 * time.Second
-	api.EnableRateLimiting(d, 4)
+	d := 60 * time.Second
+	api.EnableThrottling(d, 4)
 
 	log.Printf("Rate limiting with a token added every %s", d.String())
 
@@ -28,8 +28,9 @@ func main() {
 
 		followers := page.Followers
 		for _, follower := range followers {
-			fmt.Printf("%+v\n", *follower.Screen_name)
+			fmt.Printf("%+v\n", follower.ScreenName)
 		}
 		i++
 	}
+    log.Printf("Finished logging all %d followers -- exiting", i)
 }
