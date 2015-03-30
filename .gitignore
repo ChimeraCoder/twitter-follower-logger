@@ -5,5 +5,6 @@
 *.log
 conf.go
 conf.sh
-data
+/data*
 log
+/twitter-follower-logger
