@@ -15,6 +15,7 @@ func main() {
 
 	d := 60 * time.Second
 	api.EnableThrottling(d, 4)
+	api.SetLogger(anaconda.BasicLogger)
 
 	log.Printf("Rate limiting with a token added every %s", d.String())
 
@@ -32,5 +33,5 @@ func main() {
 		}
 		i++
 	}
-    log.Printf("Finished logging all %d followers -- exiting", i)
+	log.Printf("Finished logging all %d followers -- exiting", i)
 }
