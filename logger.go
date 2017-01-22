@@ -2,29 +2,41 @@ package main
 
 import (
 	"fmt"
-	"github.com/ChimeraCoder/anaconda"
 	"log"
 	"time"
+
+	"github.com/ChimeraCoder/anaconda"
+
+	"github.com/DataDog/datadog-go/statsd"
 )
 
 func main() {
+
+	stats, err := statsd.NewBuffered("127.0.0.1:8126", 1024)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Print("Running updated version")
 	anaconda.SetConsumerKey(TWITTER_CONSUMER_KEY)
 	anaconda.SetConsumerSecret(TWITTER_CONSUMER_SECRET)
 	api := anaconda.NewTwitterApi(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 
-	d := 60 * time.Second
+	d := 120 * time.Second
 	api.EnableThrottling(d, 4)
 	api.SetLogger(anaconda.BasicLogger)
 
+	stats.Count("twitterfollowerlogger.init", 1, []string{fmt.Sprintf("duration:%s", d.String())}, 1.0)
 	log.Printf("Rate limiting with a token added every %s", d.String())
 
 	followers_pages := api.GetFollowersListAll(nil)
 
 	i := 0
 	for page := range followers_pages {
+		stats.Count("twitterfollowerlogger.page", 1, nil, 1.0)
 		if page.Error != nil {
 			log.Printf("ERROR: received error from GetFollowersListAll: %s", page.Error)
+			stats.Count("twitterfollowerlogger.page.errors", 1, []string{fmt.Sprintf("error:%s", page.Error)}, 1.0)
 		}
 
 		followers := page.Followers
@@ -33,5 +45,6 @@ func main() {
 		}
 		i++
 	}
+	stats.Gauge("twitterfollowerlogger.followers_total", float64(i), nil, 1.0)
 	log.Printf("Finished logging all %d followers -- exiting", i)
 }
