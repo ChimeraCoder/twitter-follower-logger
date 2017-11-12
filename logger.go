@@ -32,6 +32,7 @@ func main() {
 	followers_pages := api.GetFollowersListAll(nil)
 
 	i := 0
+	count := 0
 	for page := range followers_pages {
 		stats.Count("twitterfollowerlogger.page", 1, nil, 1.0)
 		if page.Error != nil {
@@ -44,7 +45,9 @@ func main() {
 			fmt.Printf("%+v\n", follower.ScreenName)
 		}
 		i++
+		count += len(followers)
+		stats.Count("twitterfollowerlogger.page.page_length", int64(count), nil, 1.0)
 	}
 	stats.Gauge("twitterfollowerlogger.followers_total", float64(i), nil, 1.0)
-	log.Printf("Finished logging all %d followers -- exiting", i)
+	log.Printf("Finished logging all %d followers -- exiting", count)
 }
