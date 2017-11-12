@@ -3,12 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
 
 	"github.com/DataDog/datadog-go/statsd"
 )
+
+var TWITTER_CONSUMER_KEY = os.Getenv("TWITTER_CONSUMER_SECRET")
+var TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
+var TWITTER_ACCESS_TOKEN = os.Getenv("TWITTER_ACCESS_TOKEN")
+var TWITTER_ACCESS_TOKEN_SECRET = os.Getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
 func main() {
 
