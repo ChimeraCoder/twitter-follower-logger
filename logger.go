@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
@@ -18,6 +19,8 @@ var TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
 var TWITTER_ACCESS_TOKEN = os.Getenv("TWITTER_ACCESS_TOKEN")
 var TWITTER_ACCESS_TOKEN_SECRET = os.Getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
+var THROTTLE_SECONDS = os.Getenv("THROTTLE_SECONDS")
+
 func main() {
 
 	stats, err := statsd.NewBuffered("127.0.0.1:8126", 1024)
@@ -31,6 +34,16 @@ func main() {
 	api := anaconda.NewTwitterApi(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 
 	d := 120 * time.Second
+
+	if THROTTLE_SECONDS != "" {
+		i, err := strconv.Atoi(THROTTLE_SECONDS)
+		if err != nil {
+			log.Printf("Could not parse %s: %s", THROTTLE_SECONDS, err)
+		} else {
+			d = time.Duration(i) * time.Second
+		}
+	}
+
 	api.EnableThrottling(d, 4)
 	api.SetLogger(anaconda.BasicLogger)
 
