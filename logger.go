@@ -11,6 +11,8 @@ import (
 	"github.com/DataDog/datadog-go/statsd"
 )
 
+var VERSION = "unset"
+
 var TWITTER_CONSUMER_KEY = os.Getenv("TWITTER_CONSUMER_SECRET")
 var TWITTER_CONSUMER_SECRET = os.Getenv("TWITTER_CONSUMER_SECRET")
 var TWITTER_ACCESS_TOKEN = os.Getenv("TWITTER_ACCESS_TOKEN")
@@ -23,7 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Print("Running updated version")
+	log.Printf("Running version %s", VERSION)
 	anaconda.SetConsumerKey(TWITTER_CONSUMER_KEY)
 	anaconda.SetConsumerSecret(TWITTER_CONSUMER_SECRET)
 	api := anaconda.NewTwitterApi(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
