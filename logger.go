@@ -1,17 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
 
 	"github.com/DataDog/datadog-go/statsd"
+
+	"cloud.google.com/go/storage"
 )
 
 var VERSION = "unset"
@@ -23,13 +25,7 @@ var TWITTER_ACCESS_TOKEN_SECRET = os.Getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
 var THROTTLE_SECONDS = os.Getenv("THROTTLE_SECONDS")
 
-var DATA_DIR = os.Getenv("DATA_DIR")
-
 func main() {
-
-	if DATA_DIR == "" {
-		DATA_DIR = filepath.Join("/twitter-follower-records")
-	}
 
 	stats, err := statsd.NewBuffered("127.0.0.1:8126", 1024)
 	if err != nil {
@@ -60,27 +56,29 @@ func main() {
 
 	followers_pages := api.GetFollowersListAll(nil)
 
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Fatalf("Could not create storage client: %s", err)
+	}
+
+	bkt := client.Bucket("twitter-follower-logger")
+
 	start := time.Now().Unix()
 	recordFilename := strconv.Itoa(int(start))
 	logFilename := fmt.Sprintf("%s.log", recordFilename)
 
-	logf, err := os.Create(logFilename)
-	if err != nil {
-		stats.Count("twitterfollowerlogger.logfile.create_err", 1, []string{fmt.Sprintf("error:%s")}, 1)
-		log.Fatalf("error creating log file: %s", err)
-	}
+	logF := bkt.Object(logFilename).NewWriter(ctx)
+	defer logF.Close()
 
-	log.SetOutput(io.MultiWriter(logf, os.Stderr))
+	log.SetOutput(io.MultiWriter(logF, os.Stderr))
 
-	log.Printf("logging to %s", logf.Name())
+	log.Printf("logging to %s", logFilename)
 
-	recordF, err := os.Create(recordFilename)
-	if err != nil {
-		stats.Count("twitterfollowerlogger.recordfile.create_err", 1, []string{fmt.Sprintf("error:%s")}, 1)
-		log.Fatalf("error creating record file: %s", err)
-	}
+	recordF := bkt.Object(recordFilename).NewWriter(ctx)
+	defer recordF.Close()
 
-	log.Printf("writing records to %s", recordF.Name())
+	log.Printf("writing records to %s", recordFilename)
 
 	i := 0
 	count := 0
@@ -96,7 +94,12 @@ func main() {
 
 		followers := page.Followers
 		for _, follower := range followers {
-			fmt.Fprintf(recordF, "%+v\n", follower.ScreenName)
+			_, err := fmt.Fprintf(recordF, "%+v\n", follower.ScreenName)
+			if err != nil {
+				stats.Count("twitterfollowerlogger.record.write_error", int64(count), []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
+				log.Fatalf("Error writing to record file %s", err)
+
+			}
 		}
 		i++
 		count += len(followers)
