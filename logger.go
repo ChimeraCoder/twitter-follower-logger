@@ -98,6 +98,10 @@ func main() {
 		i++
 		count += len(page.Followers)
 		stats.Count("twitterfollowerlogger.page.page_length", int64(count), nil, 1.0)
+
+        if i >= 1{
+            break
+        }
 	}
 	if err != nil {
 		stats.Count("twitterfollowerlogger.app.errors", 1, []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
