@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -21,7 +23,13 @@ var TWITTER_ACCESS_TOKEN_SECRET = os.Getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
 var THROTTLE_SECONDS = os.Getenv("THROTTLE_SECONDS")
 
+var DATA_DIR = os.Getenv("DATA_DIR")
+
 func main() {
+
+	if DATA_DIR == "" {
+		DATA_DIR = filepath.Join("/twitter-follower-records")
+	}
 
 	stats, err := statsd.NewBuffered("127.0.0.1:8126", 1024)
 	if err != nil {
@@ -52,31 +60,52 @@ func main() {
 
 	followers_pages := api.GetFollowersListAll(nil)
 
+	start := time.Now().Unix()
+	recordFilename := strconv.Itoa(int(start))
+	logFilename := fmt.Sprintf("%s.log", recordFilename)
+
+	logf, err := os.Create(logFilename)
+	if err != nil {
+		stats.Count("twitterfollowerlogger.logfile.create_err", 1, []string{fmt.Sprintf("error:%s")}, 1)
+		log.Fatalf("error creating log file: %s", err)
+	}
+
+	log.SetOutput(io.MultiWriter(logf, os.Stderr))
+
+	log.Printf("logging to %s", logf.Name())
+
+	recordF, err := os.Create(recordFilename)
+	if err != nil {
+		stats.Count("twitterfollowerlogger.recordfile.create_err", 1, []string{fmt.Sprintf("error:%s")}, 1)
+		log.Fatalf("error creating record file: %s", err)
+	}
+
+	log.Printf("writing records to %s", recordF.Name())
+
 	i := 0
 	count := 0
 	for page := range followers_pages {
 		stats.Count("twitterfollowerlogger.page", 1, nil, 1.0)
 		if page.Error != nil {
-            err = page.Error
+			err = page.Error
 			log.Printf("ERROR: received error from GetFollowersListAll: %s", page.Error)
 			stats.Count("twitterfollowerlogger.page.errors", 1, []string{fmt.Sprintf("error:%s", page.Error)}, 1.0)
 		} else {
-            err = nil
-        }
+			err = nil
+		}
 
 		followers := page.Followers
 		for _, follower := range followers {
-			fmt.Printf("%+v\n", follower.ScreenName)
+			fmt.Fprintf(recordF, "%+v\n", follower.ScreenName)
 		}
 		i++
 		count += len(followers)
 		stats.Count("twitterfollowerlogger.page.page_length", int64(count), nil, 1.0)
 	}
-    if err != nil{
-        stats.Count("twitterfollowerlogger.app.errors", 1, []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
-        log.Printf("Exiting due to error %s", err)
-        os.Exit(1)
-    }
+	if err != nil {
+		stats.Count("twitterfollowerlogger.app.errors", 1, []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
+		log.Fatalf("Exiting due to error %s", err)
+	}
 	stats.Gauge("twitterfollowerlogger.followers_total", float64(i), nil, 1.0)
 	log.Printf("Finished logging all %d followers -- exiting", count)
 }
