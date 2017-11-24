@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -82,7 +81,6 @@ func main() {
 
 	i := 0
 	count := 0
-	allFollowers := []anaconda.User{}
 	for page := range followers_pages {
 		stats.Count("twitterfollowerlogger.page", 1, nil, 1.0)
 		if page.Error != nil {
@@ -93,31 +91,28 @@ func main() {
 			err = nil
 		}
 
-		allFollowers = append(allFollowers, page.Followers...)
+		for _, follower := range page.Followers {
+			_, err := fmt.Fprintf(recordF, "%+v\n", follower.ScreenName)
+
+			if err != nil {
+				stats.Count("twitterfollowerlogger.record.write_error", int64(count), []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
+				log.Fatalf("Error writing to record file %s", err)
+			}
+		}
 
 		i++
 		count += len(page.Followers)
 		stats.Count("twitterfollowerlogger.page.page_length", int64(count), nil, 1.0)
+		log.Printf("Recorded %d followers", len(page.Followers))
 
-        if i >= 1{
-            break
-        }
+		if i >= 1 {
+			break
+		}
 	}
+
 	if err != nil {
 		stats.Count("twitterfollowerlogger.app.errors", 1, []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
 		log.Fatalf("Exiting due to error %s", err)
-	}
-
-	buf := &bytes.Buffer{}
-
-	for _, follower := range allFollowers {
-		fmt.Fprintf(buf, "%+v\n", follower.ScreenName)
-	}
-
-	_, err = io.Copy(recordF, buf)
-	if err != nil {
-		stats.Count("twitterfollowerlogger.record.write_error", int64(count), []string{fmt.Sprintf("error:%s", err.Error())}, 1.0)
-		log.Fatalf("Error writing to record file %s", err)
 	}
 
 	err = recordF.Close()
