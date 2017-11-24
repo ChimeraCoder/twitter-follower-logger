@@ -33,6 +33,13 @@ func main() {
 	}
 
 	log.Printf("Running version %s", VERSION)
+
+    log.Printf("Twitter consumer key has length %d", len(TWITTER_CONSUMER_KEY))
+    log.Printf("Twitter consumer secret has length %d", len(TWITTER_CONSUMER_SECRET))
+    log.Printf("Twitter access token has length %d", len(TWITTER_ACCESS_TOKEN))
+    log.Printf("Twitter access token secret has length %d", len(TWITTER_ACCESS_TOKEN_SECRET))
+
+
 	anaconda.SetConsumerKey(TWITTER_CONSUMER_KEY)
 	anaconda.SetConsumerSecret(TWITTER_CONSUMER_SECRET)
 	api := anaconda.NewTwitterApi(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
