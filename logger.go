@@ -111,10 +111,6 @@ func main() {
 		count += len(page.Followers)
 		stats.Count("twitterfollowerlogger.page.page_length", int64(count), nil, 1.0)
 		log.Printf("Recorded %d followers", len(page.Followers))
-
-		if i >= 1 {
-			break
-		}
 	}
 
 	if err != nil {
